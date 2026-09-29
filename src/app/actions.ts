@@ -99,7 +99,15 @@ export async function decideAction(
   return { emailId: email.id };
 }
 
-export async function sendCandidateEmailAction(emailId: string) {
+export async function updateEmailDraftAction(emailId: string, subject: string, body: string) {
+  const email = await prisma.email.findUniqueOrThrow({ where: { id: emailId } });
+  if (email.status !== "DRAFT") throw new Error("Cannot edit an email that has already been sent");
+
+  await prisma.email.update({ where: { id: emailId }, data: { subject, body } });
+  revalidatePath("/");
+}
+
+export async function sendCandidateEmailAction(emailId: string, edited: boolean) {
   const email = await prisma.email.findUniqueOrThrow({
     where: { id: emailId },
     include: { candidate: true },
@@ -119,6 +127,7 @@ export async function sendCandidateEmailAction(emailId: string) {
     actualTo: result.actualTo,
     dryRun: result.dryRun,
     providerId: result.providerId,
+    editedByArjun: edited,
   });
 
   revalidatePath("/");

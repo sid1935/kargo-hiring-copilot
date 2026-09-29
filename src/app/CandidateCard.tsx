@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import type { CandidateView } from "@/lib/dashboard-data";
-import { decideAction, sendCandidateEmailAction } from "@/app/actions";
+import type { CandidateView, EmailView } from "@/lib/dashboard-data";
+import { decideAction, sendCandidateEmailAction, updateEmailDraftAction } from "@/app/actions";
 import { AREA_LABELS } from "@/lib/rubric";
 import { AREA_KEYS, type DecisionType } from "@/lib/types";
 
@@ -16,7 +16,6 @@ export default function CandidateCard({ candidate }: { candidate: CandidateView 
   const [note, setNote] = useState(candidate.note ?? "");
   const [expanded, setExpanded] = useState(false);
   const [pending, startTransition] = useTransition();
-  const [sendingId, setSendingId] = useState<string | null>(null);
 
   const score = candidate.score;
 
@@ -24,15 +23,6 @@ export default function CandidateCard({ candidate }: { candidate: CandidateView 
     startTransition(async () => {
       await decideAction(candidate.id, decision, note || null);
     });
-  }
-
-  async function send(emailId: string) {
-    setSendingId(emailId);
-    try {
-      await sendCandidateEmailAction(emailId);
-    } finally {
-      setSendingId(null);
-    }
   }
 
   const latestEmail = candidate.emails[0];
@@ -147,32 +137,79 @@ export default function CandidateCard({ candidate }: { candidate: CandidateView 
           </div>
         )}
 
-        {latestEmail && (
-          <div className="mt-3 rounded bg-neutral-50 p-3">
-            <div className="flex justify-between items-center">
-              <div className="text-xs font-medium text-neutral-600">
-                Draft email — {latestEmail.type}
-                {latestEmail.status === "SENT" && (
-                  <span className="text-green-700"> · sent {new Date(latestEmail.sentAt!).toLocaleString()}</span>
-                )}
-              </div>
-              {latestEmail.status === "DRAFT" && (
-                <button
-                  disabled={sendingId === latestEmail.id}
-                  onClick={() => send(latestEmail.id)}
-                  className="rounded bg-neutral-900 text-white px-3 py-1 text-xs disabled:opacity-40"
-                >
-                  {sendingId === latestEmail.id ? "Sending…" : "Send"}
-                </button>
-              )}
-            </div>
-            <div className="text-sm font-medium mt-1">{latestEmail.subject}</div>
-            <pre className="text-xs whitespace-pre-wrap text-neutral-700 mt-1 font-sans">
-              {latestEmail.body}
-            </pre>
-          </div>
+        {latestEmail && <EmailDraft key={latestEmail.id} email={latestEmail} />}
+      </div>
+    </div>
+  );
+}
+
+function EmailDraft({ email }: { email: EmailView }) {
+  const [subject, setSubject] = useState(email.subject);
+  const [body, setBody] = useState(email.body);
+  const [sending, setSending] = useState(false);
+
+  const isSent = email.status === "SENT";
+  const edited = subject !== email.subject || body !== email.body;
+
+  async function handleSend() {
+    setSending(true);
+    try {
+      if (edited) {
+        await updateEmailDraftAction(email.id, subject, body);
+      }
+      await sendCandidateEmailAction(email.id, edited);
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <div className="mt-3 rounded bg-neutral-50 p-3">
+      <div className="flex justify-between items-center">
+        <div className="text-xs font-medium text-neutral-600">
+          Draft email — {email.type}
+          {isSent && (
+            <span className="text-green-700"> · sent {new Date(email.sentAt!).toLocaleString()}</span>
+          )}
+        </div>
+        {!isSent && (
+          <button
+            disabled={sending}
+            onClick={handleSend}
+            className="rounded bg-neutral-900 text-white px-3 py-1 text-xs disabled:opacity-40"
+          >
+            {sending ? "Sending…" : "Send"}
+          </button>
         )}
       </div>
+
+      {isSent ? (
+        <>
+          <div className="text-sm font-medium mt-1">{email.subject}</div>
+          <pre className="text-xs whitespace-pre-wrap text-neutral-700 mt-1 font-sans">{email.body}</pre>
+        </>
+      ) : (
+        <div className="mt-1 space-y-1">
+          <input
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            disabled={sending}
+            className="w-full border rounded px-2 py-1 text-sm font-medium disabled:opacity-60"
+          />
+          <textarea
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            disabled={sending}
+            rows={7}
+            className="w-full border rounded px-2 py-1 text-xs font-sans disabled:opacity-60"
+          />
+          {edited && (
+            <div className="text-xs text-amber-600">
+              Edited from the AI draft — your version will be saved and sent.
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
