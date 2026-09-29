@@ -1,0 +1,14 @@
+{
+  "cases": [
+    { "file": "cv_01_rohan_desai.txt", "name": "Rohan Desai", "roleHiredInto": "Head of Engineering", "lastRating": "Exceeds Expectations", "expectedBand": "Shortlist" },
+    { "file": "cv_02_sunita_krishnamurthy.txt", "name": "Sunita Krishnamurthy", "roleHiredInto": "Operations Lead", "lastRating": "Exceeds Expectations", "expectedBand": "Shortlist" },
+    { "file": "cv_03_vikram_nair.txt", "name": "Vikram Nair", "roleHiredInto": "Product Manager", "lastRating": "Meets Expectations", "expectedBand": "NotShortlist" },
+    { "file": "cv_04_aditya_shetty.txt", "name": "Aditya Shetty", "roleHiredInto": "Sales Lead", "lastRating": "Exceeds Expectations", "expectedBand": "Shortlist" },
+    { "file": "cv_05_preetham_rao.txt", "name": "Preetham Rao", "roleHiredInto": "Backend Engineer", "lastRating": "Below Expectations", "expectedBand": "NotShortlist" },
+    { "file": "cv_06_meghna_tiwari.txt", "name": "Meghna Tiwari", "roleHiredInto": "Customer Success Manager", "lastRating": "Exceeds Expectations", "expectedBand": "Shortlist" },
+    { "file": "cv_07_lavanya_iyer.txt", "name": "Lavanya Iyer", "roleHiredInto": "Product Manager", "lastRating": "Exceeds Expectations", "expectedBand": "Shortlist" },
+    { "file": "cv_08_rahul_bose.txt", "name": "Rahul Bose", "roleHiredInto": "Growth & Marketing Lead", "lastRating": "Meets Expectations", "expectedBand": "NotShortlist" }
+  ],
+  "passCriteria": "Every 'Exceeds Expectations' hire must score >= 75. Every other hire (Meets or Below) must score < 55.",
+  "scoringNote": "Past hires are scored against the base rubric (no SPM adjustment) since none were hired into the SPM role."
+}

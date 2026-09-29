@@ -1,0 +1,81 @@
+// Kargo Hiring Copilot — data model
+// Note: SQLite has no native enum type and Prisma does not emulate one for
+// the sqlite connector, so role/decision/type/status fields are plain
+// strings, validated against a fixed union in the TypeScript layer
+// (see src/lib/types.ts).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Candidate {
+  id         String   @id @default(cuid())
+  name       String
+  email      String?
+  role       String // "PM" | "SPM"
+  sourceFile String
+  cvText     String
+  appliedAt  DateTime @default(now())
+  createdAt  DateTime @default(now())
+
+  // Cached "current" decision state for fast dashboard reads; the full
+  // history lives in DecisionEvent.
+  currentDecision String? // "ADVANCE" | "PASS" | "HOLD" | null
+  decidedAt       DateTime?
+  note            String?
+
+  score          Score?
+  decisionEvents DecisionEvent[]
+  emails         Email[]
+  auditEntries   AuditEntry[]
+}
+
+model Score {
+  id                 String   @id @default(cuid())
+  candidateId        String   @unique
+  candidate          Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  areas              String // JSON: { [areaKey]: { score: number, evidence: string } }
+  gatePassed         Boolean
+  total              Int
+  band               String // "Shortlist" | "Second look" | "Pass"
+  summary            String
+  interviewQuestions String // JSON: string[]
+  rawResponse        String
+  model              String
+  createdAt          DateTime @default(now())
+}
+
+model DecisionEvent {
+  id          String   @id @default(cuid())
+  candidateId String
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  decision    String // "ADVANCE" | "PASS" | "HOLD"
+  note        String?
+  createdAt   DateTime @default(now())
+}
+
+model Email {
+  id          String   @id @default(cuid())
+  candidateId String
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  type        String // "INVITE" | "DECLINE" | "HOLDING"
+  subject     String
+  body        String
+  status      String   @default("DRAFT") // "DRAFT" | "SENT"
+  dryRun      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  sentAt      DateTime?
+}
+
+model AuditEntry {
+  id          String   @id @default(cuid())
+  candidateId String?
+  candidate   Candidate? @relation(fields: [candidateId], references: [id], onDelete: SetNull)
+  eventType   String // "SCORED" | "DECIDED" | "EMAIL_DRAFTED" | "EMAIL_SENT" | "NOTE"
+  detail      String // JSON blob, shape depends on eventType
+  createdAt   DateTime @default(now())
+}
