@@ -1,9 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { ingestAndScoreAction } from "@/app/actions";
+import { ingestAndScoreBatchAction } from "@/app/actions";
 import type { ApplicationFile } from "@/lib/candidates";
 import type { CandidateRole } from "@/lib/types";
+
+// Matches the server's internal concurrency (SCORE_CONCURRENCY in actions.ts)
+// so each chunk resolves in roughly one "wave" — gives incremental progress
+// updates without splitting work more finely than the server already does.
+const CHUNK_SIZE = 8;
 
 interface RowState extends ApplicationFile {
   role: CandidateRole;
@@ -32,27 +37,26 @@ export default function IngestClient({
     setRows((rs) => rs.map((r) => (r.fileName === fileName ? { ...r, ...patch } : r)));
   }
 
-  async function scoreOne(row: RowState) {
-    setRow(row.fileName, { status: "scoring", error: undefined });
-    try {
-      await ingestAndScoreAction(row.fileName, row.role);
-      setRow(row.fileName, { status: "done" });
-    } catch (err) {
-      setRow(row.fileName, {
-        status: "error",
-        error: err instanceof Error ? err.message : String(err),
-      });
-    }
-  }
-
   async function scoreSelected() {
     const targets = rows.filter((r) => r.selected && r.status !== "done");
     setRunning(true);
     setProgress({ done: 0, total: targets.length });
-    for (const row of targets) {
-      await scoreOne(row);
-      setProgress((p) => ({ ...p, done: p.done + 1 }));
+
+    for (const target of targets) {
+      setRow(target.fileName, { status: "scoring", error: undefined });
     }
+
+    for (let i = 0; i < targets.length; i += CHUNK_SIZE) {
+      const chunk = targets.slice(i, i + CHUNK_SIZE);
+      const results = await ingestAndScoreBatchAction(
+        chunk.map((r) => ({ fileName: r.fileName, role: r.role })),
+      );
+      for (const r of results) {
+        setRow(r.fileName, r.ok ? { status: "done" } : { status: "error", error: r.error });
+      }
+      setProgress((p) => ({ ...p, done: p.done + chunk.length }));
+    }
+
     setRunning(false);
   }
 
@@ -70,7 +74,7 @@ export default function IngestClient({
         </button>
         {running && (
           <span className="text-sm text-neutral-500">
-            This calls Gemini once per CV — go grab a coffee.
+            Scoring up to {CHUNK_SIZE} at a time — much faster than one-by-one, still worth a coffee.
           </span>
         )}
       </div>

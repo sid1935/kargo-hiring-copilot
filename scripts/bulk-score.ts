@@ -7,7 +7,10 @@ import { scoreCandidate } from "../src/lib/gemini-score";
 import { logAudit } from "../src/lib/audit";
 import { APPLICATIONS_DIR, guessEmail, guessName, normalizeName } from "../src/lib/candidates";
 import { inferRoleFromFilename } from "../src/lib/extract-text";
+import { mapWithConcurrency } from "../src/lib/concurrency";
 import type { CandidateRole } from "../src/lib/types";
+
+const CONCURRENCY = 8;
 
 // Files with no pm_/spm_ filename prefix, triaged by stated seniority/years
 // against the JD bands (PM ~2-4 yrs, SPM ~5-8 yrs / senior ownership).
@@ -41,8 +44,9 @@ async function main() {
 
   let ok = 0;
   let failed = 0;
+  let completed = 0;
 
-  for (const [i, fileName] of todo.entries()) {
+  await mapWithConcurrency(todo, CONCURRENCY, async (fileName) => {
     const role = resolveRole(fileName);
     const start = Date.now();
     try {
@@ -82,16 +86,18 @@ async function main() {
       });
 
       ok++;
+      completed++;
       const secs = ((Date.now() - start) / 1000).toFixed(1);
       console.log(
-        `[${i + 1}/${todo.length}] ✓ ${fileName} (${role}) — ${name} — ${result.total}/100 ${result.band} (${secs}s)`,
+        `[${completed}/${todo.length}] ✓ ${fileName} (${role}) — ${name} — ${result.total}/100 ${result.band} (${secs}s)`,
       );
     } catch (err) {
       failed++;
+      completed++;
       const msg = err instanceof Error ? err.message : String(err);
-      console.log(`[${i + 1}/${todo.length}] ✗ ${fileName} (${role}) — ${msg}`);
+      console.log(`[${completed}/${todo.length}] ✗ ${fileName} (${role}) — ${msg}`);
     }
-  }
+  });
 
   console.log(`\nDone. ${ok} scored, ${failed} failed.`);
 }

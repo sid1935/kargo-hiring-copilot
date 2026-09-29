@@ -9,9 +9,10 @@ import { generateEmailDraft } from "@/lib/email-templates";
 import { sendEmail, isDryRun } from "@/lib/email";
 import { logAudit } from "@/lib/audit";
 import { APPLICATIONS_DIR, guessEmail, guessName, normalizeName } from "@/lib/candidates";
+import { mapWithConcurrency } from "@/lib/concurrency";
 import type { CandidateRole, DecisionType } from "@/lib/types";
 
-export async function ingestAndScoreAction(fileName: string, role: CandidateRole) {
+async function scoreOneCandidate(fileName: string, role: CandidateRole) {
   const filePath = path.join(APPLICATIONS_DIR, fileName);
   const cvText = await extractCvText(filePath);
   const email = guessEmail(cvText);
@@ -47,9 +48,57 @@ export async function ingestAndScoreAction(fileName: string, role: CandidateRole
     gatePassed: result.gatePassed,
   });
 
+  return { candidateId: candidate.id, total: result.total, band: result.band };
+}
+
+export async function ingestAndScoreAction(fileName: string, role: CandidateRole) {
+  const result = await scoreOneCandidate(fileName, role);
   revalidatePath("/");
   revalidatePath("/ingest");
-  return { candidateId: candidate.id, total: result.total, band: result.band };
+  return result;
+}
+
+export interface BatchScoreItem {
+  fileName: string;
+  role: CandidateRole;
+}
+
+export interface BatchScoreResult {
+  fileName: string;
+  ok: boolean;
+  total?: number;
+  band?: string;
+  error?: string;
+}
+
+const SCORE_CONCURRENCY = 8;
+
+/**
+ * Scores several CVs concurrently (bounded by SCORE_CONCURRENCY) inside one
+ * Server Action call. Next.js dispatches Server Actions one at a time per
+ * client, so calling many single-file actions from the browser — even via
+ * Promise.all — would still run them sequentially; the concurrency has to
+ * live inside a single action to actually happen.
+ */
+export async function ingestAndScoreBatchAction(
+  items: BatchScoreItem[],
+): Promise<BatchScoreResult[]> {
+  const results = await mapWithConcurrency(items, SCORE_CONCURRENCY, async (item) => {
+    try {
+      const r = await scoreOneCandidate(item.fileName, item.role);
+      return { fileName: item.fileName, ok: true, total: r.total, band: r.band } satisfies BatchScoreResult;
+    } catch (err) {
+      return {
+        fileName: item.fileName,
+        ok: false,
+        error: err instanceof Error ? err.message : String(err),
+      } satisfies BatchScoreResult;
+    }
+  });
+
+  revalidatePath("/");
+  revalidatePath("/ingest");
+  return results;
 }
 
 export async function decideAction(
