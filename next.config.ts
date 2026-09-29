@@ -7,6 +7,13 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/*": ["data/applications/**/*", "prompts/**/*", "prisma/template.db"],
   },
+  experimental: {
+    // Default Server Action body limit is 1MB, too small for resume PDFs
+    // (especially uploading several at once).
+    serverActions: {
+      bodySizeLimit: "20mb",
+    },
+  },
 };
 
 export default nextConfig;

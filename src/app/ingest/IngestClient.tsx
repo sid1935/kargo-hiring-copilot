@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { ingestAndScoreBatchAction } from "@/app/actions";
+import { useRef, useState } from "react";
+import { ingestAndScoreBatchAction, uploadCvAction } from "@/app/actions";
 import type { ApplicationFile } from "@/lib/candidates";
 import type { CandidateRole } from "@/lib/types";
 
@@ -9,6 +9,16 @@ import type { CandidateRole } from "@/lib/types";
 // so each chunk resolves in roughly one "wave" — gives incremental progress
 // updates without splitting work more finely than the server already does.
 const CHUNK_SIZE = 8;
+
+// Duplicated (not imported) from extract-text.ts deliberately — that module
+// pulls in Node-only file-parsing libraries that have no business in a
+// client bundle.
+function inferRoleFromFilename(fileName: string): CandidateRole | null {
+  const lower = fileName.toLowerCase();
+  if (lower.startsWith("spm_") || lower.startsWith("spm-")) return "SPM";
+  if (lower.startsWith("pm_") || lower.startsWith("pm-")) return "PM";
+  return null;
+}
 
 interface RowState extends ApplicationFile {
   role: CandidateRole;
@@ -32,9 +42,51 @@ export default function IngestClient({
   );
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState({ done: 0, total: 0 });
+  const [uploading, setUploading] = useState(false);
+  const [uploadMessage, setUploadMessage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   function setRow(fileName: string, patch: Partial<RowState>) {
     setRows((rs) => rs.map((r) => (r.fileName === fileName ? { ...r, ...patch } : r)));
+  }
+
+  async function handleFilesSelected(fileList: FileList | null) {
+    if (!fileList || fileList.length === 0) return;
+    setUploading(true);
+    setUploadMessage(null);
+    try {
+      const formData = new FormData();
+      for (const file of fileList) formData.append("files", file);
+
+      const { added, skipped } = await uploadCvAction(formData);
+
+      if (added.length > 0) {
+        setRows((rs) => [
+          ...rs,
+          ...added.map((fileName) => {
+            const inferredRole = inferRoleFromFilename(fileName);
+            return {
+              fileName,
+              inferredRole,
+              alreadyIngested: false,
+              role: inferredRole ?? ("PM" as CandidateRole),
+              selected: true,
+              status: "idle" as const,
+            };
+          }),
+        ]);
+      }
+
+      const parts: string[] = [];
+      if (added.length > 0) parts.push(`Added ${added.length}: ${added.join(", ")}`);
+      if (skipped.length > 0) {
+        parts.push(`Skipped ${skipped.length}: ${skipped.map((s) => `${s.fileName} (${s.reason})`).join("; ")}`);
+      }
+      setUploadMessage(parts.join(" — ") || null);
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   }
 
   async function scoreSelected() {
@@ -64,7 +116,7 @@ export default function IngestClient({
 
   return (
     <div>
-      <div className="flex items-center gap-4 mb-4">
+      <div className="flex items-center gap-4 mb-2">
         <button
           onClick={scoreSelected}
           disabled={running || selectedCount === 0}
@@ -72,12 +124,28 @@ export default function IngestClient({
         >
           {running ? `Scoring ${progress.done}/${progress.total}…` : `Score selected (${selectedCount})`}
         </button>
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploading}
+          className="rounded border border-neutral-300 px-4 py-2 text-sm disabled:opacity-40"
+        >
+          {uploading ? "Uploading…" : "Add CV"}
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          accept=".pdf,.docx"
+          className="hidden"
+          onChange={(e) => handleFilesSelected(e.target.files)}
+        />
         {running && (
           <span className="text-sm text-neutral-500">
             Scoring up to {CHUNK_SIZE} at a time — much faster than one-by-one, still worth a coffee.
           </span>
         )}
       </div>
+      {uploadMessage && <p className="text-xs text-neutral-500 mb-4">{uploadMessage}</p>}
 
       <table className="w-full text-sm border-collapse">
         <thead>

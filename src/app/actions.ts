@@ -1,5 +1,7 @@
 "use server";
 
+import { existsSync } from "node:fs";
+import fs from "node:fs/promises";
 import path from "node:path";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
@@ -11,6 +13,46 @@ import { logAudit } from "@/lib/audit";
 import { APPLICATIONS_DIR, guessEmail, guessName, normalizeName } from "@/lib/candidates";
 import { mapWithConcurrency } from "@/lib/concurrency";
 import type { CandidateRole, DecisionType } from "@/lib/types";
+
+export interface UploadCvResult {
+  added: string[];
+  skipped: { fileName: string; reason: string }[];
+}
+
+/**
+ * Saves uploaded CV files into data/applications so they show up in the
+ * ingest list. Only works where the filesystem is actually writable — on
+ * Vercel's deployed bundle it is not (read-only), so this only works when
+ * running locally.
+ */
+export async function uploadCvAction(formData: FormData): Promise<UploadCvResult> {
+  const files = formData.getAll("files").filter((f): f is File => f instanceof File);
+
+  const added: string[] = [];
+  const skipped: UploadCvResult["skipped"] = [];
+
+  for (const file of files) {
+    if (!/\.(pdf|docx)$/i.test(file.name)) {
+      skipped.push({ fileName: file.name, reason: "Only .pdf and .docx are supported" });
+      continue;
+    }
+
+    const safeName = path.basename(file.name); // guard against path traversal
+    const dest = path.join(APPLICATIONS_DIR, safeName);
+
+    if (existsSync(dest)) {
+      skipped.push({ fileName: file.name, reason: "A file with this name already exists" });
+      continue;
+    }
+
+    const buffer = Buffer.from(await file.arrayBuffer());
+    await fs.writeFile(dest, buffer);
+    added.push(safeName);
+  }
+
+  revalidatePath("/ingest");
+  return { added, skipped };
+}
 
 async function scoreOneCandidate(fileName: string, role: CandidateRole) {
   const filePath = path.join(APPLICATIONS_DIR, fileName);
