@@ -31,6 +31,16 @@ export async function uploadCvAction(formData: FormData): Promise<UploadCvResult
   const added: string[] = [];
   const skipped: UploadCvResult["skipped"] = [];
 
+  if (process.env.VERCEL) {
+    return {
+      added,
+      skipped: files.map((f) => ({
+        fileName: f.name,
+        reason: "Uploads aren't supported on this deployment (its filesystem is read-only) — use the local app instead",
+      })),
+    };
+  }
+
   for (const file of files) {
     if (!/\.(pdf|docx)$/i.test(file.name)) {
       skipped.push({ fileName: file.name, reason: "Only .pdf and .docx are supported" });
