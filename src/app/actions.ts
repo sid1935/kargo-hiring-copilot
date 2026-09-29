@@ -115,7 +115,8 @@ export async function sendCandidateEmailAction(emailId: string) {
 
   await logAudit(email.candidateId, "EMAIL_SENT", {
     emailId,
-    to,
+    candidateEmail: to,
+    actualTo: result.actualTo,
     dryRun: result.dryRun,
     providerId: result.providerId,
   });
