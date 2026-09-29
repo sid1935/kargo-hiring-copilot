@@ -37,6 +37,8 @@ yarn-error.log*
 # local sqlite database (runtime state, not source)
 *.db
 *.db-journal
+# ...except the schema-only template used to seed Vercel's ephemeral /tmp
+!prisma/template.db
 
 # vercel
 .vercel
@@ -44,3 +46,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+.vercel
+.env*
