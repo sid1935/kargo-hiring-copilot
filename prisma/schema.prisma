@@ -1,15 +1,15 @@
 // Kargo Hiring Copilot — data model
-// Note: SQLite has no native enum type and Prisma does not emulate one for
-// the sqlite connector, so role/decision/type/status fields are plain
-// strings, validated against a fixed union in the TypeScript layer
-// (see src/lib/types.ts).
+// Note: role/decision/type/status fields are plain strings (not Prisma
+// enums), validated against a fixed union in the TypeScript layer instead
+// (see src/lib/types.ts) — left over from when this ran on SQLite, which
+// has no native enum support, but there's no need to churn it now.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
 model Candidate {

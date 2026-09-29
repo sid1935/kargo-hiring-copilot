@@ -34,12 +34,6 @@ yarn-error.log*
 .env*
 !.env.example
 
-# local sqlite database (runtime state, not source)
-*.db
-*.db-journal
-# ...except the schema-only template used to seed Vercel's ephemeral /tmp
-!prisma/template.db
-
 # vercel
 .vercel
 
