@@ -12,15 +12,11 @@ export async function extractCvText(filePath: string): Promise<string> {
 
   if (ext === ".pdf") {
     const fs = await import("node:fs/promises");
-    const { PDFParse } = await import("pdf-parse");
+    const { getDocumentProxy, extractText } = await import("unpdf");
     const buffer = await fs.readFile(filePath);
-    const parser = new PDFParse({ data: buffer });
-    try {
-      const result = await parser.getText();
-      return result.text.trim();
-    } finally {
-      await parser.destroy();
-    }
+    const pdf = await getDocumentProxy(new Uint8Array(buffer));
+    const { text } = await extractText(pdf, { mergePages: true });
+    return text.trim();
   }
 
   throw new Error(`Unsupported CV file type: ${ext} (${filePath})`);
