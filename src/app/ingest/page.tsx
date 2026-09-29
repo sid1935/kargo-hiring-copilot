@@ -2,6 +2,10 @@ import { listApplicationFiles } from "@/lib/candidates";
 import IngestClient from "./IngestClient";
 
 export const dynamic = "force-dynamic";
+// Raises the timeout for ingestAndScoreBatchAction, which can run several
+// concurrent Gemini calls (each possibly retrying) in one request. Vercel
+// clamps this to whatever the account's plan actually allows.
+export const maxDuration = 300;
 
 export default async function IngestPage() {
   const files = await listApplicationFiles();
