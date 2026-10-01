@@ -18,9 +18,11 @@ export default function DashboardClient({ candidates }: { candidates: CandidateV
   return (
     <div>
       {flagged.length > 0 && (
-        <div className="mb-6 rounded border border-amber-300 bg-amber-50 p-3">
-          <div className="font-medium text-amber-900 text-sm mb-1">Needs attention</div>
-          <ul className="text-sm text-amber-800 list-disc pl-5">
+        <div className="mb-6 rounded border border-warn/30 bg-warn/10 p-3">
+          <div className="font-semibold text-warn text-xs uppercase tracking-wide mb-1">
+            Needs attention
+          </div>
+          <ul className="text-sm text-ink-soft list-disc pl-5">
             {flagged.map((c) => (
               <li key={c.id}>
                 {c.name} ({c.role}) — {c.flags.join("; ")}
@@ -30,13 +32,15 @@ export default function DashboardClient({ candidates }: { candidates: CandidateV
         </div>
       )}
 
-      <div className="flex gap-2 mb-4 border-b border-neutral-200">
+      <div className="flex gap-2 mb-4 border-b border-line">
         {(["PM", "SPM"] as const).map((r) => (
           <button
             key={r}
             onClick={() => setTab(r)}
-            className={`px-4 py-2 text-sm border-b-2 -mb-px ${
-              tab === r ? "border-neutral-900 font-medium" : "border-transparent text-neutral-500"
+            className={`px-4 py-2 text-sm border-b-2 -mb-px transition-colors ${
+              tab === r
+                ? "border-accent font-semibold text-ink"
+                : "border-transparent text-ink-faint hover:text-ink-soft"
             }`}
           >
             {r === "PM" ? "Product Manager" : "Senior Product Manager"} (
@@ -46,9 +50,9 @@ export default function DashboardClient({ candidates }: { candidates: CandidateV
       </div>
 
       {shown.length === 0 && (
-        <p className="text-sm text-neutral-500">
+        <p className="text-sm text-ink-soft">
           No candidates scored for this role yet. Go to{" "}
-          <a href="/ingest" className="underline">
+          <a href="/ingest" className="text-accent underline">
             Ingest &amp; Score
           </a>{" "}
           to get started.

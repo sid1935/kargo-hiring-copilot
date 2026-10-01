@@ -120,14 +120,14 @@ export default function IngestClient({
         <button
           onClick={scoreSelected}
           disabled={running || selectedCount === 0}
-          className="rounded bg-neutral-900 text-white px-4 py-2 text-sm disabled:opacity-40"
+          className="rounded-sm bg-accent text-bg font-semibold px-4 py-2 text-sm hover:bg-accent-strong transition-colors disabled:opacity-40"
         >
           {running ? `Scoring ${progress.done}/${progress.total}…` : `Score selected (${selectedCount})`}
         </button>
         <button
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading}
-          className="rounded border border-neutral-300 px-4 py-2 text-sm disabled:opacity-40"
+          className="rounded-sm border border-line text-ink font-semibold px-4 py-2 text-sm hover:border-accent transition-colors disabled:opacity-40"
         >
           {uploading ? "Uploading…" : "Add CV"}
         </button>
@@ -140,54 +140,55 @@ export default function IngestClient({
           onChange={(e) => handleFilesSelected(e.target.files)}
         />
         {running && (
-          <span className="text-sm text-neutral-500">
+          <span className="text-sm text-ink-faint">
             Scoring up to {CHUNK_SIZE} at a time — much faster than one-by-one, still worth a coffee.
           </span>
         )}
       </div>
-      {uploadMessage && <p className="text-xs text-neutral-500 mb-4">{uploadMessage}</p>}
+      {uploadMessage && <p className="text-xs text-ink-faint mb-4">{uploadMessage}</p>}
 
       <table className="w-full text-sm border-collapse">
         <thead>
-          <tr className="text-left border-b border-neutral-200">
+          <tr className="text-left border-b border-line">
             <th className="py-2 pr-2"></th>
-            <th className="py-2 pr-2">File</th>
-            <th className="py-2 pr-2">Role</th>
-            <th className="py-2 pr-2">Status</th>
+            <th className="py-2 pr-2 text-xs font-semibold uppercase tracking-wide text-ink-soft">File</th>
+            <th className="py-2 pr-2 text-xs font-semibold uppercase tracking-wide text-ink-soft">Role</th>
+            <th className="py-2 pr-2 text-xs font-semibold uppercase tracking-wide text-ink-soft">Status</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.fileName} className="border-b border-neutral-100">
+            <tr key={row.fileName} className="border-b border-line">
               <td className="py-2 pr-2">
                 <input
                   type="checkbox"
                   checked={row.selected}
                   disabled={row.status === "done" || row.status === "scoring"}
                   onChange={(e) => setRow(row.fileName, { selected: e.target.checked })}
+                  className="accent-accent"
                 />
               </td>
-              <td className="py-2 pr-2 font-mono text-xs">{row.fileName}</td>
+              <td className="py-2 pr-2 font-mono text-xs text-ink-soft">{row.fileName}</td>
               <td className="py-2 pr-2">
                 <select
                   value={row.role}
                   disabled={row.status === "done" || row.status === "scoring"}
                   onChange={(e) => setRow(row.fileName, { role: e.target.value as CandidateRole })}
-                  className="border rounded px-1 py-0.5"
+                  className="bg-surface border border-line rounded-sm px-1.5 py-1 text-ink"
                 >
                   <option value="PM">PM</option>
                   <option value="SPM">SPM</option>
                 </select>
                 {!row.inferredRole && row.status === "idle" && (
-                  <span className="ml-2 text-amber-600 text-xs">confirm role</span>
+                  <span className="ml-2 text-warn text-xs">confirm role</span>
                 )}
               </td>
               <td className="py-2 pr-2">
-                {row.status === "idle" && <span className="text-neutral-400">not scored</span>}
-                {row.status === "scoring" && <span className="text-blue-600">scoring…</span>}
-                {row.status === "done" && <span className="text-green-600">✓ scored</span>}
+                {row.status === "idle" && <span className="text-ink-faint">not scored</span>}
+                {row.status === "scoring" && <span className="text-teal">scoring…</span>}
+                {row.status === "done" && <span className="text-good">✓ scored</span>}
                 {row.status === "error" && (
-                  <span className="text-red-600" title={row.error}>
+                  <span className="text-accent" title={row.error}>
                     error — {row.error}
                   </span>
                 )}

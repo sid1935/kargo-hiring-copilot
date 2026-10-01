@@ -7,9 +7,9 @@ import { AREA_LABELS } from "@/lib/rubric";
 import { AREA_KEYS, type DecisionType } from "@/lib/types";
 
 const BAND_COLOR: Record<string, string> = {
-  Shortlist: "bg-green-100 text-green-800",
-  "Second look": "bg-amber-100 text-amber-800",
-  Pass: "bg-neutral-100 text-neutral-600",
+  Shortlist: "bg-good/15 text-good",
+  "Second look": "bg-warn/15 text-warn",
+  Pass: "bg-line text-ink-faint",
 };
 
 export default function CandidateCard({ candidate }: { candidate: CandidateView }) {
@@ -28,36 +28,47 @@ export default function CandidateCard({ candidate }: { candidate: CandidateView 
   const latestEmail = candidate.emails[0];
 
   return (
-    <div className="rounded border border-neutral-200 p-4">
-      <div className="flex justify-between items-start">
+    <div className="rounded-sm border border-line bg-surface p-5">
+      <div className="flex justify-between items-start gap-4">
         <div>
-          <div className="font-medium">{candidate.name}</div>
+          <div className="font-display font-bold uppercase text-2xl leading-none tracking-wide">
+            {candidate.name}
+          </div>
           <a
             href={`/api/files/${encodeURIComponent(candidate.sourceFile)}`}
             target="_blank"
-            className="text-xs text-neutral-400 underline"
+            className="font-mono text-xs text-ink-faint underline mt-1 inline-block"
           >
             {candidate.sourceFile}
           </a>
         </div>
         {score && (
-          <div className="text-right">
-            <span className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${BAND_COLOR[score.band]}`}>
+          <div className="text-right shrink-0">
+            <span
+              className={`inline-block rounded-sm px-2.5 py-1 text-xs font-semibold uppercase tracking-wide ${BAND_COLOR[score.band]}`}
+            >
               {score.band}
             </span>
-            <div className="text-lg font-semibold">{score.total}/100</div>
+            <div className="font-display font-extrabold text-4xl leading-tight mt-1 text-accent">
+              {score.total}
+              <span className="font-mono font-normal text-sm text-ink-faint tracking-normal"> /100</span>
+            </div>
             {!score.gatePassed && (
-              <div className="text-xs text-red-600">Gated: hands-on ops experience too low</div>
+              <div className="text-xs text-warn mt-0.5">Gated: hands-on ops experience too low</div>
             )}
           </div>
         )}
       </div>
 
-      {score && <p className="text-sm text-neutral-700 mt-2">{score.summary}</p>}
+      {score && (
+        <p className="text-sm text-ink-soft mt-3 pb-4 border-b-2 border-accent leading-relaxed">
+          {score.summary}
+        </p>
+      )}
 
       {score && (
         <button
-          className="text-xs text-neutral-500 underline mt-2"
+          className="text-xs text-ink-faint underline mt-3 hover:text-accent transition-colors"
           onClick={() => setExpanded((e) => !e)}
         >
           {expanded ? "Hide details" : "Show evidence & interview questions"}
@@ -65,32 +76,36 @@ export default function CandidateCard({ candidate }: { candidate: CandidateView 
       )}
 
       {score && expanded && (
-        <div className="mt-3 space-y-2">
+        <div className="mt-4 space-y-3">
           {AREA_KEYS.map((key) => {
             const area = score.areas[key];
             if (!area) return null;
             return (
               <div key={key}>
-                <div className="flex justify-between text-xs text-neutral-600">
+                <div className="flex justify-between text-xs font-semibold uppercase tracking-wide text-ink-soft">
                   <span>{AREA_LABELS[key]}</span>
-                  <span>{area.score}/5</span>
+                  <span className="font-mono font-normal normal-case tracking-normal">
+                    {area.score}/5
+                  </span>
                 </div>
-                <div className="h-1.5 bg-neutral-100 rounded">
+                <div className="h-1.5 bg-line rounded-sm mt-1.5">
                   <div
-                    className="h-1.5 bg-neutral-800 rounded"
+                    className="h-1.5 bg-accent rounded-sm"
                     style={{ width: `${(area.score / 5) * 100}%` }}
                   />
                 </div>
                 {area.evidence && (
-                  <div className="text-xs text-neutral-500 italic mt-0.5">“{area.evidence}”</div>
+                  <div className="text-xs text-ink-faint italic mt-1">“{area.evidence}”</div>
                 )}
               </div>
             );
           })}
 
-          <div className="mt-3">
-            <div className="text-xs font-medium text-neutral-600 mb-1">Interview questions</div>
-            <ul className="list-disc pl-5 text-sm text-neutral-700">
+          <div className="mt-4">
+            <div className="text-xs font-semibold uppercase tracking-wide text-ink-soft mb-1.5">
+              Interview questions
+            </div>
+            <ul className="list-disc pl-5 text-sm text-ink-soft space-y-0.5">
               {score.interviewQuestions.map((q, i) => (
                 <li key={i}>{q}</li>
               ))}
@@ -99,11 +114,11 @@ export default function CandidateCard({ candidate }: { candidate: CandidateView 
         </div>
       )}
 
-      <div className="mt-4 border-t border-neutral-100 pt-3">
+      <div className="mt-5 border-t border-line pt-4">
         {candidate.currentDecision ? (
-          <div className="text-sm">
-            Decision: <span className="font-medium">{candidate.currentDecision}</span>
-            {candidate.note && <span className="text-neutral-500"> — “{candidate.note}”</span>}
+          <div className="text-sm text-ink-soft">
+            Decision: <span className="font-semibold text-ink">{candidate.currentDecision}</span>
+            {candidate.note && <span> — “{candidate.note}”</span>}
           </div>
         ) : (
           <div className="flex items-center gap-2">
@@ -111,26 +126,26 @@ export default function CandidateCard({ candidate }: { candidate: CandidateView 
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder="Optional one-line note"
-              className="flex-1 border rounded px-2 py-1 text-sm"
+              className="flex-1 bg-bg border border-line rounded-sm px-2.5 py-1.5 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none"
             />
             <button
               disabled={pending}
               onClick={() => decide("ADVANCE")}
-              className="rounded bg-green-700 text-white px-3 py-1 text-sm disabled:opacity-40"
+              className="rounded-sm bg-accent text-bg font-semibold px-3 py-1.5 text-sm hover:bg-accent-strong transition-colors disabled:opacity-40"
             >
               Advance
             </button>
             <button
               disabled={pending}
               onClick={() => decide("HOLD")}
-              className="rounded bg-amber-600 text-white px-3 py-1 text-sm disabled:opacity-40"
+              className="rounded-sm border border-line text-ink font-semibold px-3 py-1.5 text-sm hover:border-accent transition-colors disabled:opacity-40"
             >
               Hold
             </button>
             <button
               disabled={pending}
               onClick={() => decide("PASS")}
-              className="rounded bg-neutral-500 text-white px-3 py-1 text-sm disabled:opacity-40"
+              className="rounded-sm border border-line text-ink-faint px-3 py-1.5 text-sm hover:text-ink-soft transition-colors disabled:opacity-40"
             >
               Pass
             </button>
@@ -164,19 +179,22 @@ function EmailDraft({ email }: { email: EmailView }) {
   }
 
   return (
-    <div className="mt-3 rounded bg-neutral-50 p-3">
+    <div className="mt-3 rounded-sm bg-bg border border-line p-3.5">
       <div className="flex justify-between items-center">
-        <div className="text-xs font-medium text-neutral-600">
+        <div className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
           Draft email — {email.type}
           {isSent && (
-            <span className="text-green-700"> · sent {new Date(email.sentAt!).toLocaleString()}</span>
+            <span className="text-good normal-case font-normal">
+              {" "}
+              · sent {new Date(email.sentAt!).toLocaleString("en-US")}
+            </span>
           )}
         </div>
         {!isSent && (
           <button
             disabled={sending}
             onClick={handleSend}
-            className="rounded bg-neutral-900 text-white px-3 py-1 text-xs disabled:opacity-40"
+            className="rounded-sm bg-accent text-bg font-semibold px-3 py-1 text-xs hover:bg-accent-strong transition-colors disabled:opacity-40"
           >
             {sending ? "Sending…" : "Send"}
           </button>
@@ -185,26 +203,26 @@ function EmailDraft({ email }: { email: EmailView }) {
 
       {isSent ? (
         <>
-          <div className="text-sm font-medium mt-1">{email.subject}</div>
-          <pre className="text-xs whitespace-pre-wrap text-neutral-700 mt-1 font-sans">{email.body}</pre>
+          <div className="text-sm font-semibold mt-2 text-ink">{email.subject}</div>
+          <pre className="text-xs whitespace-pre-wrap text-ink-soft mt-1 font-sans">{email.body}</pre>
         </>
       ) : (
-        <div className="mt-1 space-y-1">
+        <div className="mt-2 space-y-1.5">
           <input
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
             disabled={sending}
-            className="w-full border rounded px-2 py-1 text-sm font-medium disabled:opacity-60"
+            className="w-full bg-surface border border-line rounded-sm px-2.5 py-1.5 text-sm font-semibold text-ink disabled:opacity-60 focus:border-accent focus:outline-none"
           />
           <textarea
             value={body}
             onChange={(e) => setBody(e.target.value)}
             disabled={sending}
             rows={7}
-            className="w-full border rounded px-2 py-1 text-xs font-sans disabled:opacity-60"
+            className="w-full bg-surface border border-line rounded-sm px-2.5 py-1.5 text-xs font-sans text-ink-soft disabled:opacity-60 focus:border-accent focus:outline-none"
           />
           {edited && (
-            <div className="text-xs text-amber-600">
+            <div className="text-xs text-warn">
               Edited from the AI draft — your version will be saved and sent.
             </div>
           )}

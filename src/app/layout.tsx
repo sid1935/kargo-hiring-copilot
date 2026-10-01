@@ -1,14 +1,22 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Big_Shoulders, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const display = Big_Shoulders({
+  variable: "--font-display",
+  weight: ["600", "700", "800"],
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const body = IBM_Plex_Sans({
+  variable: "--font-body",
+  weight: ["400", "500", "600"],
+  subsets: ["latin"],
+});
+
+const mono = IBM_Plex_Mono({
+  variable: "--font-mono",
+  weight: ["400", "500"],
   subsets: ["latin"],
 });
 
@@ -21,13 +29,19 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${display.variable} ${body.variable} ${mono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
-        <nav className="border-b border-neutral-200 px-6 py-3 flex gap-6 text-sm">
-          <a href="/" className="font-medium">Dashboard</a>
-          <a href="/ingest" className="text-neutral-500">Ingest &amp; Score</a>
-          <a href="/audit" className="text-neutral-500">Audit Log</a>
+      <body className="min-h-full flex flex-col bg-bg text-ink">
+        <nav className="border-b border-line px-6 py-3 flex gap-6 text-sm">
+          <a href="/" className="font-medium text-ink hover:text-accent transition-colors">
+            Dashboard
+          </a>
+          <a href="/ingest" className="text-ink-soft hover:text-accent transition-colors">
+            Ingest &amp; Score
+          </a>
+          <a href="/audit" className="text-ink-soft hover:text-accent transition-colors">
+            Audit Log
+          </a>
         </nav>
         {children}
       </body>
